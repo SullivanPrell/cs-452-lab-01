@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+# Cmake build debug file
+cmake-build-debug
+
+# Ignore workspace
+.idea/workspace.xml
