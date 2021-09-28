@@ -26,7 +26,7 @@ SPECIAL	[()><|&;*]
 
 %%
 
-char **getline() {
+char **parseline() {
   return (char **)yylex();
 }
 

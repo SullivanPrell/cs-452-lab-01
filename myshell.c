@@ -12,7 +12,7 @@
 #include <errno.h>
 #include <signal.h>
 
-extern char **getline();
+extern char **parseline();
 
 /*
  * Handle exit signals from child processes
