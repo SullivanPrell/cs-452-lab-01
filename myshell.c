@@ -1,6 +1,6 @@
 /*
  * This code implements a simple shell program
- * It supports the internal shell command "exit", 
+ * It supports the internal shell command "exit",
  * backgrounding processes with "&", input redirection
  * with "<" and output redirection with ">".
  * However, this is not complete.
@@ -26,10 +26,10 @@ void sig_handler(int signal) {
 
 /*
  * The main shell function
- */ 
+ */
 main() {
   int i;
-  char **args; 
+  char **args;
   int result;
   int block;
   int output;
@@ -45,7 +45,7 @@ main() {
 
     // Print out the prompt and get the input
     printf("->");
-    args = getline();
+    args = parseline();
 
     // No input, continue
     if(args[0] == NULL)
@@ -89,8 +89,8 @@ main() {
     }
 
     // Do the command
-    do_command(args, block, 
-	       input, input_filename, 
+    do_command(args, block,
+	       input, input_filename,
 	       output, output_filename);
   }
 }
@@ -110,13 +110,13 @@ int ampersand(char **args) {
   } else {
     return 0;
   }
-  
+
   return 0;
 }
 
-/* 
+/*
  * Check for internal commands
- * Returns true if there is more to do, false otherwise 
+ * Returns true if there is more to do, false otherwise
  */
 int internal_command(char **args) {
   if(strcmp(args[0], "exit") == 0) {
@@ -126,13 +126,13 @@ int internal_command(char **args) {
   return 0;
 }
 
-/* 
+/*
  * Do the command
  */
 int do_command(char **args, int block,
 	       int input, char *input_filename,
 	       int output, char *output_filename) {
-  
+
   int result;
   pid_t child_id;
   int status;
@@ -217,7 +217,7 @@ int redirect_output(char **args, char **output_filename) {
     if(args[i][0] == '>') {
       free(args[i]);
 
-      // Get the filename 
+      // Get the filename
       if(args[i+1] != NULL) {
 	*output_filename = args[i+1];
       } else {
@@ -235,5 +235,3 @@ int redirect_output(char **args, char **output_filename) {
 
   return 0;
 }
-
-
