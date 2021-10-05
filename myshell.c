@@ -35,7 +35,7 @@ void sig_handler(int signal) {
   int status;
   int result = wait(&status);
 
-  printf("Wait returned %d\n", result);
+  //printf("Wait returned %d\n", result);
 }
 
 /*
@@ -86,7 +86,7 @@ main() {
 			filler[i]=malloc(sizeof(char**));
 		}
 		parsePipe(args,filler);
-		test_pipes(filler);
+		//test_pipes(filler);
 	}
 
     // Check for redirected input
@@ -121,6 +121,8 @@ main() {
     // Do the command
 	if(pipes>1){
 		do_multi_pipe_command(filler, block,input, input_filename, output, output_filename);
+		//do_pipe_command(filler, block,input, input_filename, output, output_filename);
+
 		int i;
 		for(int i=0;i<pipes;i++){
 			free(filler[i]);
@@ -288,12 +290,10 @@ int piping(char **args){
 	for(i=0;args[i]!=NULL;i++);
 
 	for(a=0;a<i;a++){
-		printf("%s",args[a]);
 		if(strchr(args[a],'|')!=NULL){
 			out++;
 		}
 	}
-			printf("\n");
 
 	return out;
 }
@@ -367,8 +367,6 @@ void do_pipe_command(char ***args, int block, int input, char *input_filename, i
 	
 	int directors[2];
 	pid_t p1, p2;
-	pid_t parent=getpid();
-	printf("%d\n",parent);
 	char **proc1=args[0];
 	char **proc2=args[1];
 
@@ -443,19 +441,20 @@ void do_multi_pipe_command(char ***args, int block, int input, char *input_filen
 	
 	
 	int result;
-	int status1,status2;
-	
-	int directors[2*i];
-	pid_t processes[i];
-	int a=0;
-	
-	for(a=0;a<i;a++){
-		if(pipe(directors)<0){
+
+	int status;
+	int directors[i][2];
+	pid_t p[i];
+
+
+	int a;
+	for(a=0;a<i-1;a++){
+		if(pipe(directors[a])<0){
 			printf("Pipes were unable to start\n");
 		}
-		//processes[0]=fork();
+		p[a]=fork();
 
-		switch(processes[0]) {
+		switch(p[a]) {
 		case EAGAIN:
 			perror("Error EAGAIN: ");
 			return;
@@ -464,10 +463,10 @@ void do_multi_pipe_command(char ***args, int block, int input, char *input_filen
 			return;
 		}
 
-		if(fork()==0){
-			close(directors[a]);
-			dup2(directors[a+1],STDOUT_FILENO);
-			close(directors[a+1]);
+		if(p[a]==0){
+			close(directors[a][0]);
+			dup2(directors[a][1],STDOUT_FILENO);
+			close(directors[a][1]);
 			if(execvp(args[a][0],args[a])<0){
 				printf("1 Failed\n");
 				exit(-1);
@@ -476,38 +475,49 @@ void do_multi_pipe_command(char ***args, int block, int input, char *input_filen
 			//exit(0);
 		
 		}
-		else{
-			//[a+1]=fork();
-			switch(processes[a+1]) {
+		else {
+			p[a+1]=fork();
+			
+			switch(p[a+1]) {
 				case EAGAIN:
 					perror("Error EAGAIN: ");
 					return;
-				case ENOMEM:
+				case ENOMEM:						
 					perror("Error ENOMEM: ");
 					return;
 			}	
-			if(fork()==0){
-				close(directors[a+1]);
-				dup2(directors[a],STDIN_FILENO);
-				close(directors[a]);
-
+			if(p[a+1]==0&&i-a==2){
+				close(directors[a][1]);
+				dup2(directors[a][0],STDIN_FILENO);
+				close(directors[a][0]);
 				if(execvp(args[a+1][0],args[a+1])<0){
 					printf("2 Failed\n");
 					exit(-1);
 				}
 
-				//result2=execvp(proc2[0],proc2);
-				//exit(-1);
 			}
+			else if(p[a+1]==0){
+				//close(directors[a][1]);
+				dup2(directors[a][0],STDIN_FILENO);
+				close(directors[a][0]);
+				dup2(directors[a][1],STDOUT_FILENO);
+				close(directors[a][1]);
+				if(execvp(args[a+1][0],args[a+1])<0){
+					printf("2 Failed\n");
+					exit(-1);
+				}
+
+			}
+
 			else{
-				if(block) {
-				//	close(directors[a]);
-					close(directors[a+1]);
+				if(block) {	
+					close(directors[a][0]);
+					close(directors[a][1]);		
 				//	printf("Waiting for child 1, pid = %d\n", p1);
-					result = waitpid(processes[a], &status1, 0);	
+					result = waitpid(p[a], &status, 0);	
 					//printf("One has finished\n");		
 					//printf("Waiting for child 2, pid = %d\n", p2);
-					result = waitpid(processes[a+1], &status2, 0);	
+					result = waitpid(p[a+1], &status, 0);	
 					//printf("Two has finished\n");		
 				}
 			}
@@ -516,5 +526,6 @@ void do_multi_pipe_command(char ***args, int block, int input, char *input_filen
 }
 
 //___________________________________________________
+
 
 
