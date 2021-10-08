@@ -27,7 +27,7 @@ void do_pipe_command(char ***args, int block, int input, char *input_filename, i
 void parsePipe(char** args, char*** commands);
 void test_pipes(char***args);
 void do_multi_pipe_command(char ***args, int block, int input, char *input_filename, int output, char *output_filename);
-
+void hacky(char ***args, int block, int input, char *input_filename, int output, char *output_filename);
 /*
  * Handle exit signals from child processes
  */
@@ -61,7 +61,7 @@ main() {
   while(1) {
 
     // Print out the prompt and get the input
-    printf("->");
+    printf("452 Shell ~]$ ");
     args = parseline();
 
     // No input, continue
@@ -86,7 +86,7 @@ main() {
 			filler[i]=malloc(sizeof(char**));
 		}
 		parsePipe(args,filler);
-		//test_pipes(filler);
+		test_pipes(filler);
 	}
 
     // Check for redirected input
@@ -120,7 +120,8 @@ main() {
     }
     // Do the command
 	if(pipes>1){
-		do_multi_pipe_command(filler, block,input, input_filename, output, output_filename);
+		//do_multi_pipe_command
+		hacky(filler, block,input, input_filename, output, output_filename);
 		//do_pipe_command(filler, block,input, input_filename, output, output_filename);
 
 		int i;
@@ -163,6 +164,9 @@ int ampersand(char **args) {
 int internal_command(char **args) {
   if(strcmp(args[0], "exit") == 0) {
     exit(0);
+  }
+  else if(strcmp(args[0], "cd") == 0) {
+    chdir(args[1]);
   }
 
   return 0;
@@ -477,7 +481,6 @@ void do_multi_pipe_command(char ***args, int block, int input, char *input_filen
 		}
 		else {
 			p[a+1]=fork();
-			
 			switch(p[a+1]) {
 				case EAGAIN:
 					perror("Error EAGAIN: ");
@@ -486,22 +489,10 @@ void do_multi_pipe_command(char ***args, int block, int input, char *input_filen
 					perror("Error ENOMEM: ");
 					return;
 			}	
-			if(p[a+1]==0&&i-a==2){
+			if(p[a+1]==0){
 				close(directors[a][1]);
 				dup2(directors[a][0],STDIN_FILENO);
 				close(directors[a][0]);
-				if(execvp(args[a+1][0],args[a+1])<0){
-					printf("2 Failed\n");
-					exit(-1);
-				}
-
-			}
-			else if(p[a+1]==0){
-				//close(directors[a][1]);
-				dup2(directors[a][0],STDIN_FILENO);
-				close(directors[a][0]);
-				dup2(directors[a][1],STDOUT_FILENO);
-				close(directors[a][1]);
 				if(execvp(args[a+1][0],args[a+1])<0){
 					printf("2 Failed\n");
 					exit(-1);
@@ -524,6 +515,205 @@ void do_multi_pipe_command(char ***args, int block, int input, char *input_filen
 		}
 	}
 }
+
+
+
+void hacky(char ***args, int block, int input, char *input_filename, int output, char *output_filename) {
+	int i;
+	for(i=0;args[i]!=NULL;i++);
+	
+	
+	int result;
+	
+	int status;
+	int directors[2*(i-1)];
+	pid_t p[i];
+
+	int a;
+	
+	int b;
+	for(b=0;b<i-1;b++){
+		int check=pipe(directors+(2*b));
+		if(check<0){
+			printf("Pipes were unable to start\n");
+		}
+	}
+	
+
+	for(a=0;a<i;a++){
+		p[a]=fork();
+
+		switch(p[a]) {
+		case EAGAIN:
+			perror("Error EAGAIN: ");
+			return;
+		case ENOMEM:
+			perror("Error ENOMEM: ");
+			return;
+		}
+
+		if(p[a]==0){
+			if(a==0){
+				int check=dup2(directors[2*a+1],STDOUT_FILENO);
+				if(check<0){
+					printf("dup 1 = %d\n",check);
+				}
+
+				for(b=0;b<2*i-2;b++){
+					close(directors[b]);
+				}
+				if(execvp(args[a][0],args[a])<0){
+					printf("1 Failed\n");
+					exit(-1);
+				}
+			}
+			else if(a+1==i){
+				int check=dup2(directors[2*(a-1)],STDIN_FILENO);
+				if(check<0){
+					printf("dup 2 = %d, a = %d, reading from = %d\n",check,a,2*(a-1));
+					exit(-1);
+				}
+
+				for(b=0;b<2*i-2;b++){
+					close(directors[b]);
+				}
+				if(execvp(args[a][0],args[a])<0){
+					printf("2 Failed\n");
+					exit(-1);
+				}
+			}
+			else{
+				if(dup2(directors[2*a+1],STDOUT_FILENO)<0){printf("dup 3\n");}
+				if(dup2(directors[2*(a-1)],STDIN_FILENO)<0){
+					printf("dup 4\n");
+					exit(-1);
+				}
+
+				for(b=0;b<2*i-2;b++){
+					close(directors[b]);
+				}	
+				
+				if(execvp(args[a][0],args[a])<0){
+					printf("1 Failed\n");
+					exit(-1);
+				}
+			}
+		}
+	}
+	if(block) {	
+		for(b=0;b<2*i-2;b++){
+				close(directors[b]);
+			}
+		for(b=0;b<i;b++){
+			wait(&status);		
+		}
+	}
+}
+
+void piped_redirection(char ***args, int block, int input, char *input_filename, int output, char *output_filename) {
+	int i;
+	for(i=0;args[i]!=NULL;i++);
+	
+	
+	int result;
+	
+	int status;
+	int directors[2*(i-1)];
+	pid_t p[i];
+
+	int a;
+	
+	printf("%d\n",i);
+	int b;
+	for(b=0;b<i-1;b++){
+		int check=pipe(directors+(2*b));
+		if(check<0){
+			printf("Pipes were unable to start\n");
+		}
+		else{
+			printf("%d|%d|",directors[2*b],directors[2*b+1]);
+		}
+	}
+	printf("\n");
+	
+
+	for(a=0;a<i;a++){
+		p[a]=fork();
+
+		switch(p[a]) {
+		case EAGAIN:
+			perror("Error EAGAIN: ");
+			return;
+		case ENOMEM:
+			perror("Error ENOMEM: ");
+			return;
+		}
+
+		if(p[a]==0){
+			if(a==0){
+				printf("First Case, %s\n",args[a][0]);
+				printf("1. Writing to %d\n",directors[2*a+1]);
+				int check=dup2(directors[2*a+1],STDOUT_FILENO);
+				if(check<0){
+					printf("dup 1 = %d\n",check);
+				}
+
+				for(b=0;b<2*i-2;b++){
+					close(directors[b]);
+				}
+				if(execvp(args[a][0],args[a])<0){
+					printf("1 Failed\n");
+					exit(-1);
+				}
+			}
+			else if(a+1==i){
+				printf("End Case, %s\n",args[a][0]);
+				int check=dup2(directors[2*(a-1)],STDIN_FILENO);
+				if(check<0){
+					printf("dup 2 = %d, a = %d, reading from = %d\n",check,a,2*(a-1));
+					exit(-1);
+				}
+				//printf("4. Reading from %d\n",directors[2*(a-1)]);
+
+				//dup2(directors[2],STDIN_FILENO);
+				for(b=0;b<2*i-2;b++){
+					close(directors[b]);
+				}
+				if(execvp(args[a][0],args[a])<0){
+					printf("2 Failed\n");
+					exit(-1);
+				}
+			}
+			else{
+				printf("Middle Case, %s\n",args[a][0]);
+
+				if(dup2(directors[2*a+1],STDOUT_FILENO)<0){printf("dup 3\n");}
+				if(dup2(directors[2*(a-1)],STDIN_FILENO)<0){
+					printf("dup 4\n");
+					exit(-1);
+				}
+
+				for(b=0;b<2*i-2;b++){
+					close(directors[b]);
+				}	
+				
+				if(execvp(args[a][0],args[a])<0){
+					printf("1 Failed\n");
+					exit(-1);
+				}
+			}
+		}
+	}
+	if(block) {	
+		for(b=0;b<2*i-2;b++){
+				close(directors[b]);
+			}
+		for(b=0;b<i;b++){
+			wait(&status);		
+		}
+	}
+}
+
 
 //___________________________________________________
 
