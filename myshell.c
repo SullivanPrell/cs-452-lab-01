@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <errno.h>
 #include <signal.h>
 #include <string.h>
@@ -226,6 +227,9 @@ void do_command(char **args, int block, int input, char *input_filename, int out
     if (block) {
         printf("Waiting for child, pid = %d\n", child_id);
         result = waitpid(child_id, &status, 0);
+    } else {
+        printf("[%d]\n", child_id);
+        result = waitpid(child_id, &status, WNOHANG);
     }
 }
 
