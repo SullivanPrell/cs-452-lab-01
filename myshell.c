@@ -69,6 +69,7 @@ main() {
 		// Print out the prompt and get the input
 		printf("452 Shell ~]$ ");
 		args = parseline();
+		test_args(args);
 
 		// No input, continue
 		if(args[0] == NULL)
@@ -84,7 +85,6 @@ main() {
 	
 		pipes= piping(args);
 		char **filler[pipes+1];
-
 
 
 		if(pipes>1){
@@ -132,11 +132,12 @@ main() {
 		case 1:
 			printf("Redirecting output to: %s\n", output_filename);
 			break;
+		case 2:
+			printf("Appending output to: %s\n",output_filename);
 		}
 		// Do the command
 		if(pipes>1){
 			piped_redirection(filler, block,input, input_filename, output, output_filename);
-			//hacky(filler, block,input, input_filename, output, output_filename);
 			int i;
 			for(i=0;i<pipes+1;i++){
 				free(filler[i]);
@@ -265,43 +266,47 @@ int redirect_input(char **args, char **input_filename) {
  * Check for output redirection
  */
 int redirect_output(char **args, char **output_filename) {
-	int i;
-	int j;
+		int i;
+		int j;
 
-	for(i = 0; args[i] != NULL; i++) {
+		for(i = 0; args[i] != NULL; i++) {
 
-    // Look for the >
-    if(args[i][0] == '>') {
-      if (args[i][1] == '>') {
-        printf("we found it");
-        free(args[i]);
-        // Get the filename
-        if(args[i+1] != NULL) {
-	        *output_filename = args[i+1];
-        } else {
-	        return -1;
-        }
-      // Adjust the rest of the arguments in the array
-        for(j = i; args[j-1] != NULL; j++) {
-	        args[j] = args[j+2];
-        }
-
+		// Look for the >
+		if(args[i][0] == '>') {
+			if (args[i+1][0] == '>') {
+				printf("we found it\n");
+				free(args[i]);
+				free(args[i+1]);
+				// Get the filename
+				if(args[i+2] != NULL) {
+					*output_filename = args[i+2];
+				} 
+				else {
+					return -1;
+				}
+				// Adjust the rest of the arguments in the array
+				for(j = i; args[j-1] != NULL; j++) {
+					args[j] = args[j+3];
+				}
+				return 2;
+			}
 			// Get the filename
-			if(args[i+1] != NULL) {
-				*output_filename = args[i+1];
-			} 
 			else{
-				return -1;
+				if(args[i+1] != NULL) {
+					*output_filename = args[i+1];
+				} 
+				else{
+					return -1;
+				}
+				// Adjust the rest of the arguments in the array
+				for(j = i; args[j-1] != NULL; j++) {
+					args[j] = args[j+2];
+				}
+				return 1;
 			}
-
-			// Adjust the rest of the arguments in the array
-			for(j = i; args[j-1] != NULL; j++) {
-				args[j] = args[j+2];
-			}
-			return 1;
 		}
 	}
-	return 0;
+	return 0;	
 }
 
 
@@ -440,6 +445,9 @@ void piped_redirection(char ***args, int block, int input, char *input_filename,
 				}
 				if(output){
 					freopen(output_filename, "w+", stdout);
+				}
+				else if (output==2){
+					freopen(output_filename,"a",stdout);
 				}
 				check=execvp(args[a][0],args[a]);
 				if(check<0){
