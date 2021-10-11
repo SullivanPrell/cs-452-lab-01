@@ -86,6 +86,8 @@ main() {
     case 1:
       printf("Redirecting output to: %s\n", output_filename);
       break;
+    case 2:
+      printf("Appending output to: %s\n", output_filename);
     }
 
     // Do the command
@@ -215,6 +217,23 @@ int redirect_output(char **args, char **output_filename) {
 
     // Look for the >
     if(args[i][0] == '>') {
+      if (args[i][0] == '>') {
+        printf("we found it");
+        free(args[i]);
+        // Get the filename
+        if(args[i+1] != NULL) {
+	        *output_filename = args[i+1];
+        } else {
+	        return -1;
+        }
+      // Adjust the rest of the arguments in the array
+        for(j = i; args[j-1] != NULL; j++) {
+	        args[j] = args[j+2];
+        }
+
+        return 2;
+
+      }
       free(args[i]);
 
       // Get the filename
