@@ -155,12 +155,14 @@ int do_command(char **args, int block,
   if(child_id == 0) {
 
     // Set up redirection in the child process
-    if(input)
+    if(input) {
       freopen(input_filename, "r", stdin);
-
-    if(output)
+    }
+    if(output == 1) {
       freopen(output_filename, "w+", stdout);
-
+    } else if (output == 2) {
+      freopen(output_filename, "a", stdout);
+    }
     // Execute the command
     result = execvp(args[0], args);
 
@@ -217,7 +219,7 @@ int redirect_output(char **args, char **output_filename) {
 
     // Look for the >
     if(args[i][0] == '>') {
-      if (args[i][0] == '>') {
+      if (args[i][1] == '>') {
         printf("we found it");
         free(args[i]);
         // Get the filename
