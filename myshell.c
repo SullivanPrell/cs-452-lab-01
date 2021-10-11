@@ -267,9 +267,26 @@ int redirect_output(char **args, char **output_filename) {
 
 	for(i = 0; args[i] != NULL; i++) {
 
-		// Look for the >
-		if(args[i][0] == '>') {
-			free(args[i]);
+    // Look for the >
+    if(args[i][0] == '>') {
+      if (args[i][0] == '>') {
+        printf("we found it");
+        free(args[i]);
+        // Get the filename
+        if(args[i+1] != NULL) {
+	        *output_filename = args[i+1];
+        } else {
+	        return -1;
+        }
+      // Adjust the rest of the arguments in the array
+        for(j = i; args[j-1] != NULL; j++) {
+	        args[j] = args[j+2];
+        }
+
+        return 2;
+
+      }
+      free(args[i]);
 
 			// Get the filename
 			if(args[i+1] != NULL) {
