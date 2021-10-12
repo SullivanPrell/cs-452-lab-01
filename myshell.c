@@ -66,9 +66,6 @@ main() {
     int outputNum;
     int pipes;
 
-    // Set up the signal handler
-    sigset(SIGCHLD, sig_handler);
-
     // Loop forever
     while (1) {
 
@@ -87,6 +84,14 @@ main() {
 
         // Check for an ampersand
         block = (ampersand(args) == 0);
+
+        if (block) {
+            // Set up the signal handler - foreground
+            signal(SIGCHLD, sig_handler);
+        } else {
+            // Set up the signal handler - background
+            signal(SIGCHLD, SIG_IGN);
+        }
 
         pipes = piping(args);
         char **filler[pipes + 1];
@@ -229,7 +234,7 @@ void do_command(char **args, int block, int input, char *input_filename, int out
         result = waitpid(child_id, &status, 0);
     } else {
         printf("[%d]\n", child_id);
-        result = waitpid(child_id, &status, WNOHANG);
+        result = waitpid(-1, &status, WNOHANG);
     }
 }
 
