@@ -461,7 +461,7 @@ void piped_redirection(char ***args, int block, int input, char *input_filename,
         }
         for (b = 0; b < i; b++) {
             //wait(&status);
-            result = background_processing(block, &status, child_id);
+            result = background_processing(block, &status, p[b]);
         }
     }
 }
