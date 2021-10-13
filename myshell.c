@@ -38,6 +38,8 @@ void parsePipe(char **args, char ***commands);
 
 void piped_redirection(char ***args, int block, int input, char *input_filename, int output, char *output_filename);
 
+int background_processing(int block, int *status, pid_t child_id);
+
 /*
  * Handle exit signals from child processes
  */
@@ -228,14 +230,8 @@ void do_command(char **args, int block, int input, char *input_filename, int out
         exit(-1);
     }
 
-    // Wait for the child process to complete, if necessary
-    if (block) {
-        printf("Waiting for child, pid = %d\n", child_id);
-        result = waitpid(child_id, &status, 0);
-    } else {
-        printf("[%d]\n", child_id);
-        result = waitpid(-1, &status, WNOHANG);
-    }
+    result = background_processing(block, &status, child_id);
+
 }
 
 
@@ -419,7 +415,7 @@ void piped_redirection(char ***args, int block, int input, char *input_filename,
                 for (b = 0; b < 2 * i - 2; b++) {
                     close(directors[b]);
                 }
-                if (output==1) {
+                if (output == 1) {
                     freopen(output_filename, "w+", stdout);
                 } else if (output == 2) {
                     freopen(output_filename, "a", stdout);
@@ -459,6 +455,26 @@ void piped_redirection(char ***args, int block, int input, char *input_filename,
             wait(&status);
             //result = waitpid(p[b], &status, 0);
         }
+    } else {
+        for (b = 0; b < 2 * i - 2; b++) {
+            close(directors[b]);
+        }
+        for (b = 0; b < i; b++) {
+            //wait(&status);
+            result = background_processing(block, &status, child_id);
+        }
+    }
+}
+
+int background_processing(int block, int *status, pid_t child_id) {
+    // Wait for the child process to complete, if necessary
+    if (block) {
+        printf("Waiting for child, pid = %d\n", child_id);
+        return waitpid(child_id, &status, 0);
+    } else {
+        printf("[%d]\n", child_id);
+        return waitpid(child_id, &status, WNOHANG);
+
     }
 }
 
