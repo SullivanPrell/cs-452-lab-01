@@ -419,7 +419,7 @@ void piped_redirection(char ***args, int block, int input, char *input_filename,
                 for (b = 0; b < 2 * i - 2; b++) {
                     close(directors[b]);
                 }
-                if (output) {
+                if (output==1) {
                     freopen(output_filename, "w+", stdout);
                 } else if (output == 2) {
                     freopen(output_filename, "a", stdout);
