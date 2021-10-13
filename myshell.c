@@ -19,8 +19,9 @@ extern char **parseline();
 extern int errno;
 int piping(char**args);
 
-int util_finder(char **args, char ***multiArgs);
-void parseUtil(char **args, char ***multiArgs);
+int util_finder(char **args);
+void parseUtil(char **args, char ****multiArgs);
+void utilMalloc(char **args, int *util);
 int ampersand(char **args);
 int internal_command(char **args);
 void do_command(char **args, int block, int input, char *input_filename, int output, char *output_filename, char ***multiArgs);
@@ -48,9 +49,11 @@ void sig_handler(int signal) {
  * The main shell function
  */
 main() {
+	int *utilM;
+	int j;
 	int i;
 	char **args;
-	char ***multiArgs;
+	char ****multiArgs;
 	int result;
 	int block;
 	int output;
@@ -84,8 +87,19 @@ main() {
 		if(internal_command(args))
 		  continue;
 
-		// Check for util commands
 
+		//check for chains/util
+		util = util_finder(args);
+		if (util > 0) {
+			utilMalloc(args, utilM);
+			for(i=0;i<util+1;i++){
+				multiArgs[i]=malloc(sizeof(char****));
+				for (j=0;j<utilM[i] + 1; j++){
+					multiArgs[i][j]=malloc(sizeof(char**));
+				}
+			}
+			parseUtil(args, multiArgs);
+		}
 
 		// Check for an ampersand
 		block = (ampersand(args) == 0);
@@ -320,28 +334,28 @@ int redirect_output(char **args, char **output_filename) {
  * Check for util like && or ||
  */
 
-int util_finder(char **args, char ***multiArgs) {
+int util_finder(char **args) {
+	i = 0;
+	chainCount = 0;
 	for(i = 0; args[i] != NULL; i++) {
-		for (j = 0, args[i] != ) {
-
-		}
 		if (args[i][0] == '&' && args[i][1] == '&') {
 			printf("found &&");
-			return 1;
+			chainCount++;
 		} else if (args[i][0] == '|' && args[i][1] == '|') {
-			printf("found ||");
-			return 1;
-		} else {
-			return 0;
+			printf("found ||"); 
+			chainCount++;
 		}
 	}
+
+	return chainCount;
 }
 
-//takes in an array of args and an empty 3d array. The array will have 2 slots, in which you can put in sequences of commands
-void parseUtil(char **args, char ***multiArgs){
+//takes in an array of args and an empty 4d array. The array will have 2 slots, in which you can put in sequences of commands
+void parseUtil(char **args, char ****multiArgs){
 	int p=0;
 	int a=0;
 	int b=0;
+	int c=0;
 
 	while(args[p]!=NULL){
 		if(strchr(args[p],'||') != NULL || strchr(args[p], '&&') != NULL) {
@@ -349,15 +363,46 @@ void parseUtil(char **args, char ***multiArgs){
 			a++;
 			p++;
 			b=0;
-
+			c=0;
+		} else if (strchr(multiArgs, args[p], '|' != NULL)) {
+			b++;
+			c=0;
 		}
-		multiArgs[a][b]=args[p];
+		
+
+		multiArgs[a][b][c] = args[p];
 		p++;
-		b++;
+		c++;
 	}
 	multiArgs[a+1]=NULL;
-	multiArgs[a][b]=NULL;
+	multiArgs[a][b+1]=NULL;
+	multiArgs[a][b][c+1]=NULL;
 	
+}
+
+//Determines if there is a pipe in the command
+void utilMalloc(char **args, int *util) {
+	int i;
+	int a;
+	int counter;
+	int out=1;
+
+	for(i=0;args[i]!=NULL;i++);
+
+	for(a=0;a<i;a++){
+		if (args[i][0] == '&' && args[i][1] == '&') {
+			util[counter] = out;
+			out = 0;
+			counter++;
+		} else if (args[i][0] == '|' && args[i][1] == '|') {
+			util[counter] = out;
+			out = 0;
+			counter++;
+		}
+		if(strchr(args[a],'|')!=NULL){
+			out++;
+		}
+	}
 }
 
 //Piping things_____________________________
