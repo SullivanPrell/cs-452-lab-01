@@ -20,9 +20,10 @@ extern int errno;
 int piping(char**args);
 
 int util_finder(char **args, char ***multiArgs);
+void parseUtil(char **args, char ***multiArgs);
 int ampersand(char **args);
 int internal_command(char **args);
-void do_command(char **args, int block, int input, char *input_filename, int output, char *output_filename);
+void do_command(char **args, int block, int input, char *input_filename, int output, char *output_filename, char ***multiArgs);
 void sig_handler(int signal);
 int redirect_input(char **args, char **input_filename);
 int redirect_output(char **args, char **output_filename);
@@ -150,23 +151,7 @@ main() {
 			}
 		}
 		else{
-			do_command(args, block,input, input_filename,output, output_filename);
-		}
-	}
-}
-
-
-/*
- * Check for util like &&, || or ;
- */
-
-int util_finder(char **args) {
-	for(i = 1; args[i] != NULL; i++) {
-		if (args[i][0] == '&' && args[i][1] == '&') {
-			
-		}
-		if (args[i][0] == '|' && args[i][1] == '|') {
-
+			do_command(args, block,input, input_filename,output, output_filename, multiArgs);
 		}
 	}
 }
@@ -208,7 +193,7 @@ int internal_command(char **args) {
 /*
  * Do the command
  */
-void do_command(char **args, int block, int input, char *input_filename, int output, char *output_filename) {
+void do_command(char **args, int block, int input, char *input_filename, int output, char *output_filename, char ***multiArgs) {
 
   int result;
   pid_t child_id;
@@ -331,7 +316,45 @@ int redirect_output(char **args, char **output_filename) {
 	return 0;
 }
 
+/*
+ * Check for util like && or ||
+ */
 
+int util_finder(char **args, char ***multiArgs) {
+	for(i = 0; args[i] != NULL; i++) {
+		for (j = 0, args[i] != ) {
+
+		}
+		if (args[i][0] == '&' && args[i][1] == '&') {
+			return 1;
+		} else if (args[i][0] == '|' && args[i][1] == '|') {
+			return 1;
+		} else {
+			return 0;
+		}
+	}
+}
+
+void parseUtil(char **args, char ***multiArgs){
+	int p=0;
+	int a=0;
+	int b=0;
+
+	while(args[p]!=NULL){
+		if(strchr(args[p],'||'!=NULL || args[p], '&&' != NULL){
+			a++;
+			p++;
+			b=0;
+
+		}
+		commands[a][b]=args[p];
+		p++;
+		b++;
+	}
+	commands[a+1]=NULL;
+	commands[a][b]=NULL;
+	
+}
 
 //Piping things_____________________________
 
