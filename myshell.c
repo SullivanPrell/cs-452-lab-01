@@ -326,8 +326,10 @@ int util_finder(char **args, char ***multiArgs) {
 
 		}
 		if (args[i][0] == '&' && args[i][1] == '&') {
+			printf("found &&");
 			return 1;
 		} else if (args[i][0] == '|' && args[i][1] == '|') {
+			printf("found ||");
 			return 1;
 		} else {
 			return 0;
@@ -335,24 +337,26 @@ int util_finder(char **args, char ***multiArgs) {
 	}
 }
 
+//takes in an array of args and an empty 3d array. The array will have 2 slots, in which you can put in sequences of commands
 void parseUtil(char **args, char ***multiArgs){
 	int p=0;
 	int a=0;
 	int b=0;
 
 	while(args[p]!=NULL){
-		if(strchr(args[p],'||'!=NULL || args[p], '&&' != NULL){
+		if(strchr(args[p],'||') != NULL || strchr(args[p], '&&') != NULL) {
+			printf("Found a command");
 			a++;
 			p++;
 			b=0;
 
 		}
-		commands[a][b]=args[p];
+		multiArgs[a][b]=args[p];
 		p++;
 		b++;
 	}
-	commands[a+1]=NULL;
-	commands[a][b]=NULL;
+	multiArgs[a+1]=NULL;
+	multiArgs[a][b]=NULL;
 	
 }
 
